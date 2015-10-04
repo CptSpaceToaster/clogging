@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.4
 # System
 import logging
+import sys
 
 
 class Colors():
@@ -29,40 +30,38 @@ def tint(msg, color):
     return color + msg + Colors.reset
 
 
-class Colored_Handler(logging.Handler):
-    def __init__(self, level=logging.NOTSET):
-        super().__init__(level=level)
+_levelToColor = {
+    logging.CRITICAL: Colors.magenta,
+    logging.ERROR: Colors.red,
+    logging.WARNING: Colors.yellow,
+    logging.INFO: Colors.blue,
+    logging.DEBUG: Colors.cyan,
+    logging.NOTSET: Colors.white,
+}
 
-    # TODO: Make a custom formatter/handler, that adds color
-    def format(self, record):
-        """
-        Format the specified record.
+class ClogRecord(logging.LogRecord):
+    def __init__(self, name, level, pathname, lineno,
+                 msg, args, exc_info, func=None, sinfo=None, **kwargs):
+        super().__init__(name, level, pathname, lineno,
+                         msg, args, exc_info, func=None, sinfo=None, **kwargs)
+        self.reset = Colors.reset
+        self.levelcolor = _levelToColor[level]
 
-        If a formatter is set, use it. Otherwise, use the default formatter
-        for the module.
-        """
-        if self.formatter:
-            fmt = self.formatter
-        else:
-            fmt = logging._defaultFormatter
-        return fmt.format(record)
+logging.setLogRecordFactory(ClogRecord)
 
 
 if __name__ == '__main__':
-    # This works, but it too much of a hack to be really useful.
-    """
-    logging._levelToName = {
-        logging.CRITICAL: Colors.magenta + 'CRITICAL' + Colors.reset,
-        logging.ERROR: Colors.red + 'ERROR' + Colors.reset,
-        logging.WARNING: Colors.yellow + 'WARNING' + Colors.reset,
-        logging.INFO: Colors.blue + 'INFO' + Colors.reset,
-        logging.DEBUG: Colors.cyan + 'DEBUG' + Colors.reset,
-        logging.NOTSET: Colors.white + 'NOTSET' + Colors.reset,
-    }
-    """
-
-    logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [ %(levelname)-17s ]: %(message)-1s')  # 8s -> 17s
+    logFormatter = logging.Formatter('[%(asctime)s] [ %(levelname)-8s ]: %(message)-1s')
+    clogFormatter = logging.Formatter('[%(asctime)s] [ %(levelcolor)s%(levelname)-8s%(reset)s ]: %(message)-1s')
     logger = logging.getLogger(__name__)
+
+    fileHandler = logging.FileHandler('tst.log')
+    fileHandler.setFormatter(logFormatter)
+    logger.addHandler(fileHandler)
+
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(clogFormatter)
+    logger.addHandler(consoleHandler)
 
     logger.debug('hello')
     logger.info('waffle')
