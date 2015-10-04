@@ -1,9 +1,9 @@
 #!/usr/bin/env python3.4
 # System
 import logging
-import sys
 
 
+# TODO: Get another color utility library
 class Colors():
     # All colors are subject to change via terminal color schemes
     black = '\033[30m'
@@ -39,6 +39,7 @@ _levelToColor = {
     logging.NOTSET: Colors.white,
 }
 
+
 class ClogRecord(logging.LogRecord):
     def __init__(self, name, level, pathname, lineno,
                  msg, args, exc_info, func=None, sinfo=None, **kwargs):
@@ -47,20 +48,34 @@ class ClogRecord(logging.LogRecord):
         self.reset = Colors.reset
         self.levelcolor = _levelToColor[level]
 
+# Override the LogRecordFactory to use ours, which provides %(color)s and %(reset)s
 logging.setLogRecordFactory(ClogRecord)
 
 
 if __name__ == '__main__':
+    logger = logging.getLogger()
+    # This is needed to make the logger care about messages DEBUG and over
+    logger.setLevel(logging.DEBUG)
+
+    # An uncolored formatter
     logFormatter = logging.Formatter('[%(asctime)s] [ %(levelname)-8s ]: %(message)-1s')
+    # A formatter that makes use of the new fields 'levelcolor' and 'reset'
     clogFormatter = logging.Formatter('[%(asctime)s] [ %(levelcolor)s%(levelname)-8s%(reset)s ]: %(message)-1s')
-    logger = logging.getLogger(__name__)
 
     fileHandler = logging.FileHandler('tst.log')
+    # make it care about messages DEBUG and over
+    fileHandler.setLevel(logging.DEBUG)
+    # attach the uncolored formatter
     fileHandler.setFormatter(logFormatter)
+    # smells like coffee in here
     logger.addHandler(fileHandler)
 
     consoleHandler = logging.StreamHandler()
+    # make it care about messages DEBUG and over
+    consoleHandler.setLevel(logging.DEBUG)
+    # attach the COLORED formatter!
     consoleHandler.setFormatter(clogFormatter)
+    # really smells like coffee.......
     logger.addHandler(consoleHandler)
 
     logger.debug('hello')
